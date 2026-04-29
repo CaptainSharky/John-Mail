@@ -1,3 +1,5 @@
+import { NavLink, useNavigate } from 'react-router-dom'
+
 const folders = [
   { key: 'All', label: 'Все письма', icon: '📥' },
   { key: 'Inbox', label: 'Входящие', icon: '📨' },
@@ -7,14 +9,41 @@ const folders = [
 ]
 
 function Sidebar({ counts, activeFolder, onFolderChange }) {
+  const navigate = useNavigate()
+
+  const handleFolderClick = (folderKey) => {
+    onFolderChange(folderKey)
+    navigate('/')
+  }
+
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-logo">✉️</div>
         <div>
           <h2 className="brand-title">John Mail</h2>
-          <p className="brand-subtitle">Минималистичный email</p>
+          <p className="brand-subtitle">React email client</p>
         </div>
+      </div>
+
+      <div className="route-nav">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            isActive ? 'route-link route-link--active' : 'route-link'
+          }
+        >
+          Почта
+        </NavLink>
+
+        <NavLink
+          to="/about"
+          className={({ isActive }) =>
+            isActive ? 'route-link route-link--active' : 'route-link'
+          }
+        >
+          О проекте
+        </NavLink>
       </div>
 
       <nav className="folder-list">
@@ -24,7 +53,7 @@ function Sidebar({ counts, activeFolder, onFolderChange }) {
             className={`folder-button ${
               activeFolder === folder.key ? 'folder-button--active' : ''
             }`}
-            onClick={() => onFolderChange(folder.key)}
+            onClick={() => handleFolderClick(folder.key)}
           >
             <span className="folder-left">
               <span className="folder-icon">{folder.icon}</span>

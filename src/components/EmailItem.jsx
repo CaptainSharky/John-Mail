@@ -1,59 +1,63 @@
+import { Link } from 'react-router-dom'
+
 function EmailItem({
   email,
-  isSelected,
-  onSelect,
   onEdit,
   onDelete,
   onToggleRead,
+  onMarkAsRead,
 }) {
   return (
     <article
-      className={`email-card ${isSelected ? 'email-card--selected' : ''} ${
-        !email.read ? 'email-card--unread' : ''
-      }`}
-      onClick={() => onSelect(email.id)}
+      className={`email-card ${!email.read ? 'email-card--unread' : ''}`}
     >
-      <div className="email-card-top">
-        <div className="email-meta">
-          <span className="email-sender">{email.sender}</span>
-          <span className={`email-badge email-badge--${email.folder.toLowerCase()}`}>
-            {email.folder}
-          </span>
+      <Link
+        className="email-card-link"
+        to={`/emails/${email.id}`}
+        onClick={() => onMarkAsRead(email.id)}
+      >
+        <div className="email-card-top">
+          <div className="email-meta">
+            <span className="email-sender">{email.sender}</span>
+
+            <span
+              className={`email-badge email-badge--${email.folder.toLowerCase()}`}
+            >
+              {email.folder}
+            </span>
+
+            {email.source === 'api' && (
+              <span className="source-badge">
+                API
+              </span>
+            )}
+          </div>
+
+          <span className="email-date">{email.date}</span>
         </div>
 
-        <span className="email-date">{email.date}</span>
-      </div>
-
-      <h3 className="email-subject">{email.subject}</h3>
-      <p className="email-preview">{email.message}</p>
+        <h3 className="email-subject">{email.subject}</h3>
+        <p className="email-preview">{email.message}</p>
+      </Link>
 
       <div className="email-actions">
         <button
           className="action-button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onToggleRead(email.id)
-          }}
+          onClick={() => onToggleRead(email.id)}
         >
           {email.read ? 'Отметить непрочитанным' : 'Отметить прочитанным'}
         </button>
 
         <button
           className="action-button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onEdit(email)
-          }}
+          onClick={() => onEdit(email)}
         >
           Изменить
         </button>
 
         <button
           className="action-button action-button--danger"
-          onClick={(event) => {
-            event.stopPropagation()
-            onDelete(email.id)
-          }}
+          onClick={() => onDelete(email.id)}
         >
           Удалить
         </button>

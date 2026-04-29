@@ -25,6 +25,7 @@ function EmailForm({ initialData, onClose, onSave }) {
 
   const handleChange = (event) => {
     const { name, value } = event.target
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -57,6 +58,7 @@ function EmailForm({ initialData, onClose, onSave }) {
       <div className="modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <h2>{initialData ? 'Изменить письмо' : 'Новое письмо'}</h2>
+
           <button className="modal-close" onClick={onClose}>
             ✕
           </button>
@@ -113,6 +115,7 @@ function EmailForm({ initialData, onClose, onSave }) {
             <button type="button" className="secondary-button" onClick={onClose}>
               Отмена
             </button>
+
             <button type="submit" className="primary-button">
               {initialData ? 'Сохранить' : 'Добавить'}
             </button>

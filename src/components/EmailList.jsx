@@ -2,11 +2,10 @@ import EmailItem from './EmailItem'
 
 function EmailList({
   emails,
-  selectedEmailId,
-  onSelect,
   onEdit,
   onDelete,
   onToggleRead,
+  onMarkAsRead,
 }) {
   if (emails.length === 0) {
     return (
@@ -24,11 +23,10 @@ function EmailList({
         <EmailItem
           key={email.id}
           email={email}
-          isSelected={selectedEmailId === email.id}
-          onSelect={onSelect}
           onEdit={onEdit}
           onDelete={onDelete}
           onToggleRead={onToggleRead}
+          onMarkAsRead={onMarkAsRead}
         />
       ))}
     </div>

@@ -1,64 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
+
 import './App.css'
 
 import Sidebar from './components/Sidebar'
-import SearchBar from './components/SearchBar'
-import EmailList from './components/EmailList'
-import EmailDetails from './components/EmailDetails'
 import EmailForm from './components/EmailForm'
 
-const initialEmails = [
-  {
-    id: '1',
-    sender: 'Анна Петрова',
-    subject: 'Добро пожаловать в команду',
-    message:
-      'Привет! Рады видеть тебя в проекте. На этой неделе запланированы вводные встречи, после которых ты сможешь приступить к основной задаче.',
-    folder: 'Work',
-    read: false,
-    date: '06 апр, 09:30',
-  },
-  {
-    id: '2',
-    sender: 'Code Academy',
-    subject: 'Ваш новый курс уже доступен',
-    message:
-      'Открыт доступ к новому курсу по React. Внутри — практика по компонентам, state, props, событиям и работе со списками.',
-    folder: 'Inbox',
-    read: true,
-    date: '05 апр, 18:10',
-  },
-  {
-    id: '3',
-    sender: 'Игорь Смирнов',
-    subject: 'Встреча в пятницу',
-    message:
-      'Давай созвонимся в пятницу в 14:00 и обсудим дизайн интерфейса. Я подготовлю несколько референсов и замечаний по текущему экрану.',
-    folder: 'Personal',
-    read: false,
-    date: '05 апр, 13:45',
-  },
-  {
-    id: '4',
-    sender: 'HR Department',
-    subject: 'Обновление по отпуску',
-    message:
-      'Напоминаем, что график отпусков на следующий квартал необходимо заполнить до конца недели. Если нужны изменения, сообщите заранее.',
-    folder: 'Work',
-    read: true,
-    date: '04 апр, 11:20',
-  },
-  {
-    id: '5',
-    sender: 'Мария Волкова',
-    subject: 'Список покупок',
-    message:
-      'Купи, пожалуйста: молоко, хлеб, сыр и кофе. Если увидишь хороший чай, тоже возьми одну упаковку.',
-    folder: 'Personal',
-    read: true,
-    date: '03 апр, 19:05',
-  },
-]
+import MailPage from './pages/MailPage'
+import EmailPage from './pages/EmailPage'
+import AboutPage from './pages/AboutPage'
+import NotFoundPage from './pages/NotFoundPage'
+
+import { fetchEmailsFromApi } from './api/mailApi'
+
+const STORAGE_KEY = 'john-mail-emails'
 
 function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -74,12 +29,49 @@ function getCurrentDateLabel() {
 }
 
 function App() {
-  const [emails, setEmails] = useState(initialEmails)
+  const [emails, setEmails] = useState([])
   const [activeFolder, setActiveFolder] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
+
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEmail, setEditingEmail] = useState(null)
-  const [selectedEmailId, setSelectedEmailId] = useState(initialEmails[0]?.id ?? null)
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  const loadEmailsFromApi = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+
+      const apiEmails = await fetchEmailsFromApi()
+      setEmails(apiEmails)
+    } catch (err) {
+      setError('Не удалось загрузить письма с API')
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+      setIsLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    const savedEmails = localStorage.getItem(STORAGE_KEY)
+
+    if (savedEmails) {
+      setEmails(JSON.parse(savedEmails))
+      setIsLoaded(true)
+    } else {
+      loadEmailsFromApi()
+    }
+  }, [loadEmailsFromApi])
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(emails))
+    }
+  }, [emails, isLoaded])
 
   const counts = useMemo(() => {
     return {
@@ -90,44 +82,6 @@ function App() {
       Unread: emails.filter((email) => !email.read).length,
     }
   }, [emails])
-
-  const filteredEmails = useMemo(() => {
-    return emails.filter((email) => {
-      const matchesFolder =
-        activeFolder === 'All'
-          ? true
-          : activeFolder === 'Unread'
-          ? !email.read
-          : email.folder === activeFolder
-
-      const query = searchTerm.trim().toLowerCase()
-      const matchesSearch =
-        query.length === 0 ||
-        email.sender.toLowerCase().includes(query) ||
-        email.subject.toLowerCase().includes(query) ||
-        email.message.toLowerCase().includes(query)
-
-      return matchesFolder && matchesSearch
-    })
-  }, [emails, activeFolder, searchTerm])
-
-  const selectedEmail =
-    emails.find((email) => email.id === selectedEmailId) ?? null
-
-  useEffect(() => {
-    if (filteredEmails.length === 0) {
-      setSelectedEmailId(null)
-      return
-    }
-
-    const existsInFiltered = filteredEmails.some(
-      (email) => email.id === selectedEmailId
-    )
-
-    if (!existsInFiltered) {
-      setSelectedEmailId(filteredEmails[0].id)
-    }
-  }, [filteredEmails, selectedEmailId])
 
   const openCreateForm = () => {
     setEditingEmail(null)
@@ -149,7 +103,10 @@ function App() {
       setEmails((prevEmails) =>
         prevEmails.map((email) =>
           email.id === editingEmail.id
-            ? { ...email, ...formData }
+            ? {
+                ...email,
+                ...formData,
+              }
             : email
         )
       )
@@ -162,10 +119,10 @@ function App() {
         folder: formData.folder,
         read: false,
         date: getCurrentDateLabel(),
+        source: 'user',
       }
 
       setEmails((prevEmails) => [newEmail, ...prevEmails])
-      setSelectedEmailId(newEmail.id)
     }
 
     closeForm()
@@ -173,28 +130,37 @@ function App() {
 
   const handleDeleteEmail = (id) => {
     setEmails((prevEmails) => prevEmails.filter((email) => email.id !== id))
-
-    if (selectedEmailId === id) {
-      setSelectedEmailId(null)
-    }
-  }
-
-  const handleSelectEmail = (id) => {
-    setSelectedEmailId(id)
-
-    setEmails((prevEmails) =>
-      prevEmails.map((email) =>
-        email.id === id ? { ...email, read: true } : email
-      )
-    )
   }
 
   const handleToggleRead = (id) => {
     setEmails((prevEmails) =>
       prevEmails.map((email) =>
-        email.id === id ? { ...email, read: !email.read } : email
+        email.id === id
+          ? {
+              ...email,
+              read: !email.read,
+            }
+          : email
       )
     )
+  }
+
+  const handleMarkAsRead = (id) => {
+    setEmails((prevEmails) =>
+      prevEmails.map((email) =>
+        email.id === id
+          ? {
+              ...email,
+              read: true,
+            }
+          : email
+      )
+    )
+  }
+
+  const handleReloadApi = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    loadEmailsFromApi()
   }
 
   return (
@@ -207,37 +173,44 @@ function App() {
         />
 
         <main className="content">
-          <SearchBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            onComposeClick={openCreateForm}
-          />
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <MailPage
+                  emails={emails}
+                  activeFolder={activeFolder}
+                  searchTerm={searchTerm}
+                  isLoading={isLoading}
+                  error={error}
+                  onSearchChange={setSearchTerm}
+                  onComposeClick={openCreateForm}
+                  onReloadApi={handleReloadApi}
+                  onEdit={openEditForm}
+                  onDelete={handleDeleteEmail}
+                  onToggleRead={handleToggleRead}
+                  onMarkAsRead={handleMarkAsRead}
+                />
+              }
+            />
 
-          <section className="mail-layout">
-            <div className="mail-list-panel">
-              <div className="panel-header">
-                <div>
-                  <h1 className="panel-title">Письма</h1>
-                  <p className="panel-subtitle">
-                    Найдено: {filteredEmails.length}
-                  </p>
-                </div>
-              </div>
+            <Route
+              path="/emails/:emailId"
+              element={
+                <EmailPage
+                  emails={emails}
+                  onEdit={openEditForm}
+                  onDelete={handleDeleteEmail}
+                  onToggleRead={handleToggleRead}
+                  onMarkAsRead={handleMarkAsRead}
+                />
+              }
+            />
 
-              <EmailList
-                emails={filteredEmails}
-                selectedEmailId={selectedEmailId}
-                onSelect={handleSelectEmail}
-                onEdit={openEditForm}
-                onDelete={handleDeleteEmail}
-                onToggleRead={handleToggleRead}
-              />
-            </div>
+            <Route path="/about" element={<AboutPage />} />
 
-            <div className="mail-details-panel">
-              <EmailDetails email={selectedEmail} />
-            </div>
-          </section>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
         </main>
       </div>
 
